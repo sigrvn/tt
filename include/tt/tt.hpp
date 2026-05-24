@@ -1,26 +1,71 @@
 #ifndef TT_HPP
 #define TT_HPP
 
-/* tt - TinyTensor */
+// tt - TinyTensor
 
+#include <algorithm>
 #include <array>
+#include <iterator>
+#include <stdfloat>
 
 namespace tt {
 
-template <std::size_t... N>
+enum class dtype { f16, f32, f64 };
+
+template<dtype D>
+struct dtype_traits;
+
+// Specializations
+template<> struct dtype_traits<dtype::f16> { using type = std::float16_t; };
+template<> struct dtype_traits<dtype::f32> { using type = std::float32_t; };
+template<> struct dtype_traits<dtype::f64> { using type = std::float64_t; };
+
+// Convenience alias
+template<dtype D>
+using dtype_t = typename dtype_traits<D>::type;
+
+template<const dtype D, const std::size_t... N>
 class Tensor {
   public:
+    // Properties
     static constexpr std::size_t dim = sizeof...(N);
     static constexpr std::array<std::size_t, dim> shape = {N...};
 
-    constexpr std::size_t size() const {
+    static constexpr std::size_t size() {
       std::size_t sz = 1;
       for (const std::size_t n : {N...}) sz *= n;
       return sz;
     }
 
+    using scalar_t = dtype_t<D>;
+    using databuf_t = std::array<scalar_t, size()>;
+
+    // Constructors
+    static Tensor<D, N...> zeros() {
+      Tensor<D, N...> t;
+      std::fill(t.begin(), t.end(), 0.0f);
+      return t;
+    }
+
+    static Tensor<D, N...> ones() {
+      Tensor<D, N...> t;
+      std::fill(t.begin(), t.end(), 1.0f);
+      return t;
+    }
+        
+    // Standard iterator (linear element-wise)
+    using iterator       = typename databuf_t::iterator;
+    using const_iterator = typename databuf_t::const_iterator;
+
+    iterator       begin()        { return _data.begin(); }
+    iterator       end()          { return _data.end();   }
+    const_iterator begin() const  { return _data.begin(); }
+    const_iterator end()   const  { return _data.end();   }
+    const_iterator cbegin() const { return _data.cbegin(); }
+    const_iterator cend()   const { return _data.cend();   }
+   
   private:
-  
+    std::array<scalar_t, size()> _data;
 };
 
 }
