@@ -6,8 +6,12 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <initializer_list>
 #include <iterator>
+#include <numeric>
 #include <stdfloat>
+#include <type_traits>
+#include <vector>
 
 namespace tt {
 
@@ -39,12 +43,14 @@ template<> struct dtype_traits<dtype::f64> { using type = std::float64_t; };
 template<dtype D>
 using dtype_t = typename dtype_traits<D>::type;
 
+// Compile-time tensor (immutable)
 template<const dtype D, const std::size_t... N>
-class Tensor {
+class StaticTensor {
   public:
     // Properties
-    static constexpr std::size_t dim = sizeof...(N);
-    static constexpr std::array<std::size_t, dim> shape = {N...};
+    static constexpr std::size_t dim() {
+      return sizeof...(N);
+    }
 
     static constexpr std::size_t size() {
       std::size_t sz = 1;
@@ -52,13 +58,15 @@ class Tensor {
       return sz;
     }
 
-    using scalar_t = dtype_t<D>;
+    static constexpr std::array<std::size_t, dim()> shape = {N...};
+
+    using scalar_t  = dtype_t<D>;
     using databuf_t = std::array<scalar_t, size()>;
 
     // Constructors
-    Tensor() = default;
+    StaticTensor() = default;
       
-    Tensor(scalar_t fill) {
+    StaticTensor(scalar_t fill) {
       std::fill(_data.begin(), _data.end(), fill);
     }
         
@@ -66,10 +74,10 @@ class Tensor {
     using iterator       = typename databuf_t::iterator;
     using const_iterator = typename databuf_t::const_iterator;
 
-    iterator       begin()        { return _data.begin(); }
-    iterator       end()          { return _data.end();   }
-    const_iterator begin() const  { return _data.begin(); }
-    const_iterator end()   const  { return _data.end();   }
+    iterator       begin()        { return _data.begin();  }
+    iterator       end()          { return _data.end();    }
+    const_iterator begin() const  { return _data.begin();  }
+    const_iterator end()   const  { return _data.end();    }
     const_iterator cbegin() const { return _data.cbegin(); }
     const_iterator cend()   const { return _data.cend();   }
    
@@ -77,23 +85,86 @@ class Tensor {
     databuf_t _data;
 };
 
+
+template<std::size_t... N>
+struct Shape {
+  std::array<std::size_t, sizeof...(N)> dims = {N...};
+};
+
+// Runtime tensor (mutable)
+template<const dtype D>
+class DynamicTensor {
+  public:
+    // Properties
+    std::size_t dim() {
+      return shape.size();
+    }
+    
+    std::size_t size() {
+      return _data.size();
+    }
+
+    const std::vector<std::size_t> shape;
+
+    using scalar_t  = dtype_t<D>;
+    using databuf_t = std::vector<scalar_t>;
+
+    // Constructors
+    DynamicTensor() = default;
+
+    template<std::size_t... N>
+    DynamicTensor(Shape<N...>, std::initializer_list<scalar_t> values = {}) {
+      shape.emplace_back({N...});
+      std::size_t sz = 1;
+      for (const auto dim : shape) { sz *= dim; }
+      _data.reserve(sz);
+      std::copy(values.begin(), values.end(), _data.begin());
+    }
+    
+    DynamicTensor(scalar_t fill) {
+      std::fill(_data.begin(), _data.end(), fill);
+    }
+        
+    // Standard iterator (linear element-wise)
+    using iterator       = typename databuf_t::iterator;
+    using const_iterator = typename databuf_t::const_iterator;
+
+    iterator       begin()        { return _data.begin();  }
+    iterator       end()          { return _data.end();    }
+    const_iterator begin() const  { return _data.begin();  }
+    const_iterator end()   const  { return _data.end();    }
+    const_iterator cbegin() const { return _data.cbegin(); }
+    const_iterator cend()   const { return _data.cend();   }
+   
+  private:
+    databuf_t _data;
+};
+
+// Conditional tensor alias based on template parameters
+template<dtype D, std::size_t... N>
+using Tensor = std::conditional_t<
+  sizeof...(N) == 0,
+  DynamicTensor<D>,
+  StaticTensor<D, N...>
+>;
+
 // Factory functions
-template<dtype D, size_t... N>
+template<dtype D, std::size_t... N>
 Tensor<D, N...> zeros() {
     return Tensor<D, N...>(0.0);
 }
 
-template<dtype D, size_t... N>
+template<dtype D, std::size_t... N>
 Tensor<D, N...> ones() {
     return Tensor<D, N...>(1.0);
 }
 
-template<dtype D, size_t... N>
+template<dtype D, std::size_t... N>
 Tensor<D, N...> full(dtype_t<D> value) {
     return Tensor<D, N...>(value);
 }
 
-template<dtype D, size_t... N>
+template<dtype D, std::size_t... N>
 Tensor<D, N...> from(std::initializer_list<dtype_t<D>> values = {}) {
     Tensor<D, N...> t;
     if (values.size() > 0) {
@@ -102,6 +173,6 @@ Tensor<D, N...> from(std::initializer_list<dtype_t<D>> values = {}) {
     return t;
 }
 
-}
+} // namespace tt
 
-#endif /* TT_HPP */
+#endif // TT_HPP
