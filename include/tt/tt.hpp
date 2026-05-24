@@ -85,7 +85,6 @@ class StaticTensor {
     databuf_t _data;
 };
 
-
 template<std::size_t... N>
 struct Shape {
   std::array<std::size_t, sizeof...(N)> dims = {N...};
@@ -104,24 +103,25 @@ class DynamicTensor {
       return _data.size();
     }
 
-    const std::vector<std::size_t> shape;
+    std::vector<std::size_t> shape;
 
     using scalar_t  = dtype_t<D>;
     using databuf_t = std::vector<scalar_t>;
 
     // Constructors
-    DynamicTensor() = default;
+    DynamicTensor() {
+      shape = {1, _data.capacity()};
+    }
 
     template<std::size_t... N>
     DynamicTensor(Shape<N...>, std::initializer_list<scalar_t> values = {}) {
       shape.emplace_back({N...});
-      std::size_t sz = 1;
-      for (const auto dim : shape) { sz *= dim; }
-      _data.reserve(sz);
+      _data.reserve(std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<std::size_t>()));
       std::copy(values.begin(), values.end(), _data.begin());
     }
     
     DynamicTensor(scalar_t fill) {
+      shape = {1, _data.capacity()};
       std::fill(_data.begin(), _data.end(), fill);
     }
         

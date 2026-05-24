@@ -22,3 +22,9 @@ TEST(TensorTest, ZerosAndOnes) {
     EXPECT_EQ(n, 1.0f);
   }
 }
+
+TEST(TensorTest, DynamicCtor) {
+  auto t1 = tt::zeros<dtype::f64>();
+  auto t2 = tt::ones<dtype::i64>();
+  auto t3 = tt::zeros<dtype::u64>();
+}
