@@ -48,7 +48,7 @@ class Tensor {
 
     static constexpr std::size_t size() {
       std::size_t sz = 1;
-      for (const std::size_t n : {N...}) sz *= n;
+      for (const std::size_t n : {N...}) { sz *= n; }
       return sz;
     }
 
@@ -56,16 +56,10 @@ class Tensor {
     using databuf_t = std::array<scalar_t, size()>;
 
     // Constructors
-    static Tensor<D, N...> zeros() {
-      Tensor<D, N...> t;
-      std::fill(t.begin(), t.end(), 0.0f);
-      return t;
-    }
-
-    static Tensor<D, N...> ones() {
-      Tensor<D, N...> t;
-      std::fill(t.begin(), t.end(), 1.0f);
-      return t;
+    Tensor() = default;
+      
+    Tensor(scalar_t fill) {
+      std::fill(_data.begin(), _data.end(), fill);
     }
         
     // Standard iterator (linear element-wise)
@@ -82,6 +76,31 @@ class Tensor {
   private:
     databuf_t _data;
 };
+
+// Factory functions
+template<dtype D, size_t... N>
+Tensor<D, N...> zeros() {
+    return Tensor<D, N...>(0.0);
+}
+
+template<dtype D, size_t... N>
+Tensor<D, N...> ones() {
+    return Tensor<D, N...>(1.0);
+}
+
+template<dtype D, size_t... N>
+Tensor<D, N...> full(dtype_t<D> value) {
+    return Tensor<D, N...>(value);
+}
+
+template<dtype D, size_t... N>
+Tensor<D, N...> from(std::initializer_list<dtype_t<D>> values = {}) {
+    Tensor<D, N...> t;
+    if (values.size() > 0) {
+      std::copy(values.begin(), values.end(), t.begin());
+    }
+    return t;
+}
 
 }
 
