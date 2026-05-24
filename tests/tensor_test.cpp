@@ -12,13 +12,13 @@ TEST(TensorTest, ShapeAndDimAndSize) {
 }
 
 TEST(TensorTest, ZerosAndOnes) {
-  auto zeros = Tensor<dtype::f32, 1, 100>::zeros();
+  auto zeros = Tensor<dtype::u8, 1, 100>::zeros();
   for (const auto n : zeros) {
-    EXPECT_EQ(n, 0.0);
+    EXPECT_EQ(n, 0);
   }
 
-  auto ones = Tensor<dtype::f64, 1, 100>::ones();
+  auto ones = Tensor<dtype::f64, 2, 42>::ones();
   for (const auto n : ones) {
-    EXPECT_EQ(n, 1.0);
+    EXPECT_EQ(n, 1.0f);
   }
 }

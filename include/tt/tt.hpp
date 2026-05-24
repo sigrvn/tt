@@ -5,17 +5,32 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <iterator>
 #include <stdfloat>
 
 namespace tt {
 
-enum class dtype { f16, f32, f64 };
+enum class dtype {
+  u8, u16, u32, u64,
+  i8, i16, i32, i64,
+  f16, f32, f64
+};
 
 template<dtype D>
 struct dtype_traits;
 
 // Specializations
+template<> struct dtype_traits<dtype::u8>  { using type = std::uint8_t;  };
+template<> struct dtype_traits<dtype::u16> { using type = std::uint16_t; };
+template<> struct dtype_traits<dtype::u32> { using type = std::uint32_t; };
+template<> struct dtype_traits<dtype::u64> { using type = std::uint64_t; };
+
+template<> struct dtype_traits<dtype::i8>  { using type = std::int8_t;  };
+template<> struct dtype_traits<dtype::i16> { using type = std::int16_t; };
+template<> struct dtype_traits<dtype::i32> { using type = std::int32_t; };
+template<> struct dtype_traits<dtype::i64> { using type = std::int64_t; };
+
 template<> struct dtype_traits<dtype::f16> { using type = std::float16_t; };
 template<> struct dtype_traits<dtype::f32> { using type = std::float32_t; };
 template<> struct dtype_traits<dtype::f64> { using type = std::float64_t; };
@@ -65,7 +80,7 @@ class Tensor {
     const_iterator cend()   const { return _data.cend();   }
    
   private:
-    std::array<scalar_t, size()> _data;
+    databuf_t _data;
 };
 
 }
