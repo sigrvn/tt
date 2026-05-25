@@ -16,16 +16,6 @@
 
 namespace tt {
 
-template<typename T>
-concept Numeric = std::integral<T> || std::floating_point<T>;
-
-template<Numeric T>
-struct Range {
-  T start = 0;
-  T end   = 0;
-  T step  = 1;
-};
-
 template<size_t... N>
 struct Shape {
   static constexpr size_t  rank  = sizeof...(N);
@@ -79,10 +69,9 @@ class TensorBase {
     requires std::invocable<F&, size_t> &&
              std::convertible_to<std::invoke_result_t<F&, size_t>, scalar_t>
     void assign_fn(F&& fill_fn) {
-        auto& d = derived();
-        for (size_t i = 0; i < d.numel(); ++i) {
-          d[i] = static_cast<scalar_t>(std::invoke(fill_fn, i));
-        }
+      auto& d = derived();
+      for (size_t i = 0; i < d.numel(); ++i)
+        d[i] = static_cast<scalar_t>(std::invoke(fill_fn, i));
     }
 
   protected:
@@ -182,6 +171,14 @@ class DynamicTensor : public TensorBase<DynamicTensor<D>, D> {
     databuf_t _data;
 };
 
+template<dtype D>
+struct Range {
+  using scalar_t = dtype_t<D>;
+  scalar_t start = 0;
+  scalar_t end   = 0;
+  scalar_t step  = 1;
+};
+
 template<dtype D, size_t... N>
 using Tensor = std::conditional_t<
   sizeof...(N) == 0,
@@ -243,8 +240,8 @@ Tensor<D> from(std::initializer_list<size_t> shape,
   return Tensor<D>(s, values.begin(), values.end());
 }
 
-template<dtype D, size_t... N, typename T>
-constexpr Tensor<D, N...> arange(Shape<N...>, const Range<T> r) {
+template<dtype D, size_t... N>
+constexpr Tensor<D, N...> arange(Shape<N...>, const Range<D> r) {
   using scalar_t = dtype_t<D>;
   scalar_t start = static_cast<scalar_t>(r.start);
   scalar_t step  = static_cast<scalar_t>(r.step);
@@ -253,8 +250,8 @@ constexpr Tensor<D, N...> arange(Shape<N...>, const Range<T> r) {
   });
 }
 
-template<dtype D, typename T>
-Tensor<D> arange(const Range<T> r) {
+template<dtype D>
+Tensor<D> arange(const Range<D> r) {
   using scalar_t = dtype_t<D>;
   scalar_t start = static_cast<scalar_t>(r.start);
   scalar_t end   = static_cast<scalar_t>(r.end);
