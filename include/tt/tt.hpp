@@ -37,6 +37,11 @@ struct Shape {
     return std::is_same_v<Shape<N...>, Shape<M...>>;
   }
 
+  constexpr bool operator==(const Shape<N...>&) const { return true; }
+
+  template<size_t... M>
+  constexpr bool operator==(const Shape<M...>&) const { return false; }
+
   constexpr size_t operator[](size_t i) const { return dims[i]; }
 };
 
@@ -377,9 +382,9 @@ bool operator==(const StaticTensor<D, N...>& a, const DynamicTensor<D>& b) {
   const auto& bdims = b.shape;
   const auto& adims = a.shape.dims;
   if (!std::equal(adims.begin(), adims.end(), bdims.begin())) return false;
-    for (size_t i = 0; i < a.numel(); ++i) {
-      if (a[i] != b[i]) return false;
-    }
+  for (size_t i = 0; i < a.numel(); ++i) {
+    if (a[i] != b[i]) return false;
+  }
   return true;
 }
 
@@ -390,7 +395,7 @@ bool operator==(const DynamicTensor<D>& a, const StaticTensor<D, N...>& b) {
 
 template<dtype D, size_t... N, size_t... M>
 constexpr bool operator==(const StaticTensor<D, N...>& a, const StaticTensor<D, M...>& b) {
-  if (!a.shape.equal(b.shape)) return false;
+  if (a.shape != b.shape) return false;
   for (size_t i = 0; i < Shape<N...>::numel; ++i) {
     if (a[i] != b[i]) return false;
   }
