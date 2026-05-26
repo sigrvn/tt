@@ -367,6 +367,9 @@ Tensor<D> div(const DynamicTensor<D>& a, const DynamicTensor<D>& b) {
 
 template<dtype D>
 Tensor<D> div(const DynamicTensor<D>& a, dtype_t<D> scalar) {
+  using scalar_t = dtype_t<D>;
+  if (scalar == static_cast<scalar_t>(0))
+    throw std::invalid_argument("division by zero in DynamicTensor");
   Tensor<D> out(a.shape);
   for (size_t i = 0; i < a.numel(); ++i)
     out[i] = a[i] / scalar;
@@ -406,6 +409,70 @@ bool operator==(const DynamicTensor<D>& a, const DynamicTensor<D>& b) {
     if (a[i] != b[i]) return false;
   }
   return true;
+}
+
+namespace impl {
+
+template<typename Out, typename A, typename B>
+constexpr void matmul_into(Out& out, const A& a, const B& b, size_t N, size_t K, size_t M) {
+  using scalar_t = typename Out::scalar_t;
+  for (size_t i = 0; i < N; ++i) {
+    for (size_t k = 0; k < K; ++k) {
+      scalar_t a_val = a[i * K + k];
+      for (size_t j = 0; j < M; ++j) {
+        out[i * M + j] += a_val * b[k * M + j];
+      }
+    }
+  }
+}
+
+} // namespace impl
+
+template<dtype D, size_t N, size_t K, size_t M>
+constexpr StaticTensor<D, N, M> matmul(const StaticTensor<D, N, K>& a,
+                                       const StaticTensor<D, K, M>& b) {
+  StaticTensor<D, N, M> out;
+  impl::matmul_into(out, a, b, N, K, M);
+  return out;
+}
+
+template<dtype D>
+DynamicTensor<D> matmul(const DynamicTensor<D>& a, const DynamicTensor<D>& b) {
+  if (a.shape.size() != 2 || b.shape.size() != 2)
+    throw std::invalid_argument("input tensors to matmul() must be 2-dimensional");
+  if (a.shape[1] != b.shape[0])
+    throw std::invalid_argument("shape mismatch in matmul()");
+
+  const size_t N = a.shape[0], K = a.shape[1], M = b.shape[1];
+  DynamicTensor<D> out({N,M});
+  impl::matmul_into(out, a, b, N, K, M);
+  return out;
+}
+
+template<dtype D, size_t N, size_t K>
+DynamicTensor<D> matmul(const StaticTensor<D, N, K>& a, const DynamicTensor<D>& b) {
+  if (b.shape.size() != 2)
+    throw std::invalid_argument("input tensors to matmul() must be 2-dimensional");
+  if (K != b.shape[0])
+    throw std::invalid_argument("shape mismatch in matmul()");
+
+  const size_t M = b.shape[1];
+  DynamicTensor<D> out({N,M});
+  impl::matmul_into(out, a, b, N, K, M);
+  return out;
+}
+
+template<dtype D, size_t K, size_t M>
+DynamicTensor<D> matmul(const DynamicTensor<D>& a, const StaticTensor<D, K, M>& b) {
+  if (a.shape.size() != 2)
+    throw std::invalid_argument("input tensors to matmul() must be 2-dimensional");
+  if (K != a.shape[1])
+    throw std::invalid_argument("shape mismatch in matmul()");
+
+  const size_t N = a.shape[0];
+  DynamicTensor<D> out({N,M});
+  impl::matmul_into(out, a, b, N, K, M);
+  return out;
 }
 
 } // namespace tt

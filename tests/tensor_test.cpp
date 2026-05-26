@@ -224,3 +224,51 @@ TEST(Static, DivByZeroScalar) {
   const auto a = tt::full<f32>(Shape<2,3>{}, 4.0f);
   EXPECT_THROW(tt::div(a, 0.0f), std::invalid_argument);
 }
+
+TEST(Static, Matmul) {
+  const auto a = tt::from<u64>(Shape<2,2>{}, {1,2,3,4});
+  const auto b = tt::from<u64>(Shape<2,2>{}, {5,6,7,8});
+  const auto actual = tt::matmul(a, b);
+  const auto expected = tt::from<u64>(Shape<2,2>{}, {19,22,43,50});
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(Static, MatmulRectangular) {
+  const auto a = tt::from<u64>(Shape<2,3>{}, {1,2,3,4,5,6});
+  const auto b = tt::from<u64>(Shape<3,4>{}, {7,8,9,10,11,12,13,14,15,16,17,18});
+  const auto actual = tt::matmul(a, b);
+  const auto expected = tt::from<u64>(Shape<2,4>{}, {74,80,86,92,173,188,203,218});
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(Static, MatmulDynamic) {
+  const auto a = tt::from<u64>(Shape<2,2>{}, {1,2,3,4});
+  const auto b = tt::from<u64>({2,2}, {5,6,7,8});
+  const auto actual = tt::matmul(a, b);
+  const auto expected = tt::from<u64>({2,2}, {19,22,43,50});
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(Dynamic, Matmul) {
+  const auto a = tt::from<u64>({2,2}, {1,2,3,4});
+  const auto b = tt::from<u64>({2,2}, {5,6,7,8});
+  const auto actual = tt::matmul(a, b);
+  const auto expected = tt::from<u64>({2,2}, {19,22,43,50});
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(Dynamic, MatmulRectangular) {
+  const auto a = tt::from<u64>({2,3}, {1,2,3,4,5,6});
+  const auto b = tt::from<u64>({3,4}, {7,8,9,10,11,12,13,14,15,16,17,18});
+  const auto actual = tt::matmul(a, b);
+  const auto expected = tt::from<u64>({2,4}, {74,80,86,92,173,188,203,218});
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(Dynamic, MatmulStatic) {
+  const auto a = tt::from<u64>({2,2}, {1,2,3,4});
+  const auto b = tt::from<u64>(Shape<2,2>{}, {5,6,7,8});
+  const auto actual = tt::matmul(a, b);
+  const auto expected = tt::from<u64>({2,2}, {19,22,43,50});
+  EXPECT_EQ(actual, expected);  
+}
